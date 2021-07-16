@@ -90,6 +90,26 @@
   - name: Join the node to cluster
     command: sh /tmp/join-command.sh
 
+  - name: Install Falco for auditing
+    shell: |
+      curl -s https://falco.org/repo/falcosecurity-3672BA8F.asc | apt-key add -
+      echo "deb https://download.falco.org/packages/deb stable main" | tee -a /etc/apt/sources.list.d/falcosecurity.list
+      apt-get update -y
+      apt-get install -y linux-headers-$(uname -r)
+      apt-get install -y falco
+      systemctl enable falco
+      systemctl start falco
+
+  - name: Install tools for debugging/troubleshooting
+    apt:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - apparmor-utils
+
+  # Fix for vagrant environments
   - name: Ensure kubelet configs are correct
     synchronize:
       src: "../kubelet/{{ kubelet_file }}"

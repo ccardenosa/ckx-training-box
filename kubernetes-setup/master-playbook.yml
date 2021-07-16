@@ -25,7 +25,7 @@
       repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
       state: present
 
-  - name: Install docker and its dependecies
+  - name: Install Docker and its dependecies
     apt:
       name: "{{ packages }}"
       state: present
@@ -99,9 +99,32 @@
       sysctl -p
 
   # Install Weave as CNI
-  - name: Install calico CNI
+  - name: Install Weave CNI
     shell: |
       kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+  # Install K8S Dashboard
+  - name: Install K8S dashboard
+    shell: |
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/aio/deploy/recommended.yaml
+
+  # Install NGINX Ingress Controller
+  - name: Install NGINX Ingress Controller
+    shell: |
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/baremetal/deploy.yaml
+
+  # ------------------------------ #
+  # Policy-as-Code (PaC) solutions #
+  # ------------------------------ #
+  # Install OPA Gatekeeper
+  - name: Install OPA Gatekeeper
+    shell: |
+      kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
+
+  # Install Kyverno
+#  - name: Install Kyverno
+#    shell: |
+#      kubectl create -f https://raw.githubusercontent.com/kyverno/kyverno/main/definitions/release/install.yaml
 
   - name: Generate join command
     command: kubeadm token create --print-join-command
@@ -125,6 +148,29 @@
       echo "set expandtab" > /root/.vimrc
       echo "set tabstop=2" >> /root/.vimrc
       echo "set sw=2" >> /root/.vimrc
+
+  - name: Install tools for debugging/troubleshooting
+    apt:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - jq
+      - etcd-client
+      - binutils
+
+  - name: Install kube-bench for CIS benchmarks
+    shell: |
+      docker run --rm -v /root:/host aquasec/kube-bench install
+
+  - name: Install Helm for playing around
+    shell: |
+      curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+      apt-get install apt-transport-https --yes
+      echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+      apt-get update
+      apt-get install -y helm
 
   # Fix for vagrant environments
   - name: Ensure kubelet configs are correct

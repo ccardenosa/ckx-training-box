@@ -14,7 +14,8 @@ This is the training lab I used during preparations for the CKA, CKAD, and CKS e
 
 ## Getting started
 
-Once the system requirements are installed properly, you can bootstrap the whole virtual environment by executing the `vagrant up` command from the root directory of this folder.   
+Once the system requirements are installed properly, you can bootstrap the whole virtual environment by executing the `vagrant up` command from the root directory of this folder.
+
 
 1) Check current status of virtualized environment
 ```
@@ -68,4 +69,4 @@ cks-student@laptop:~# vagrant destroy -f
 ==> cks-worker-1: Destroying VM and associated drives...
 ```
 
-> NOTE: The environment is prepared to bootstrap a full Kubernetes cluster from the scratch, if you want to provision only certain steps (e.g., CNI), you may modify any of the Ansible playbooks on the [kubernetes-setup](kubernetes-setup) folder.
+> NOTE: The environment is prepared to bootstrap a full Kubernetes cluster from the scratch, if you want to provision only certain steps (e.g., CNI, dashboard, ingress controller, OPA, etc.), you may modify any of the Ansible playbooks on the [kubernetes-setup](kubernetes-setup) folder.
