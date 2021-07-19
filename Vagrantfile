@@ -19,6 +19,8 @@ Vagrant.configure("2") do |config|
   config.disksize.size = "50GB"
 
   # k8s cluster setup
+
+  # k8s master setup
   config.vm.define "cks-master" do |master|
     master.vm.box = IMAGE_NAME
     master.vm.hostname = "cks-master"
@@ -30,6 +32,7 @@ Vagrant.configure("2") do |config|
     end
   end
 
+  # k8s worker setup
   (1..NUM_WORKER_NODE).each do |i|
     config.vm.define "cks-worker-#{i}" do |node|
 
