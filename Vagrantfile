@@ -16,7 +16,7 @@ Vagrant.configure("2") do |config|
     v.memory = 4096
     v.cpus = 2
   end
-  config.disksize.size = "50GB"
+  config.vm.disk :disk, name: "k8s-vol", size: "50GB"
 
   # k8s cluster setup
   config.vm.define "cks-master" do |master|
@@ -24,7 +24,7 @@ Vagrant.configure("2") do |config|
     master.vm.hostname = "cks-master"
     master.vm.network "private_network", ip: "192.168.50.10"
 
-    master.vm.provision "ansible" do |ansible|
+    master.vm.provision "ansible_local" do |ansible|
       ansible.playbook = "kubernetes-setup/master-playbook.yml"
       ansible.extra_vars = { node_ip: "192.168.50.10", }
     end
@@ -37,7 +37,7 @@ Vagrant.configure("2") do |config|
       node.vm.hostname = "cks-worker-#{i}"
       node.vm.network "private_network", ip: "192.168.50.#{i + 10}"
 
-      node.vm.provision "ansible" do |ansible|
+      node.vm.provision "ansible_local" do |ansible|
         ansible.playbook = "kubernetes-setup/node-playbook.yml"
         ansible.extra_vars = { node_ip: "192.168.50.#{i + 10}",
                                kubelet_file: "cks-worker-#{i}.conf"}
