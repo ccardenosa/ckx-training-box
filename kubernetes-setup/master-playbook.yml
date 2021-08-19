@@ -120,17 +120,17 @@
       kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/aio/deploy/recommended.yaml
 
   # Install NGINX Ingress Controller
-  - name: Install NGINX Ingress Controller
-    shell: |
-      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/baremetal/deploy.yaml
+#  - name: Install NGINX Ingress Controller
+#    shell: |
+#      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/baremetal/deploy.yaml
 
   # ------------------------------ #
   # Policy-as-Code (PaC) solutions #
   # ------------------------------ #
   # Install OPA Gatekeeper
-  - name: Install OPA Gatekeeper
-    shell: |
-      kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
+#  - name: Install OPA Gatekeeper
+#    shell: |
+#      kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
 
   # Install Kyverno
 #  - name: Install Kyverno
