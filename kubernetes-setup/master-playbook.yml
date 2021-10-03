@@ -183,13 +183,14 @@
       apt-get update
       apt-get install -y trivy
 
+  - name: Download Helm installation script
+    get_url:
+      url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+      dest: /opt/get_helm.sh
+      mode: '700'
+
   - name: Install Helm for playing around
-    shell: |
-      curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
-      apt-get install apt-transport-https --yes
-      echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
-      apt-get update
-      apt-get install -y helm
+    command: bash /opt/get_helm.sh
 
   # Fix for vagrant environments
   - name: Ensure kubelet configs are correct
