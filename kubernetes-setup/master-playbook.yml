@@ -98,10 +98,12 @@
       state: directory
 
   - name: Setup kubeconfig for root user
-    command: "{{ item }}"
-    with_items:
-     - cp -i /etc/kubernetes/admin.conf /root/.kube/config
-     - chown root:root /root/.kube/config
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /etc/kubernetes/admin.conf
+      dest: /root/.kube/config
+      owner: root
+      group: root
 
   - name: Disable IP tables
     shell: |
