@@ -78,8 +78,36 @@
         - kubeadm
         - kubectl
 
+  - name: Setup kubelet config for cgroupfs
+    shell: |
+      cat << EOF > /tmp/kubeadm-config.yaml
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta2
+      kind: InitConfiguration
+      localAPIEndpoint:
+        advertiseAddress: 192.168.50.10
+        bindPort: 6443
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta2
+      kind: ClusterConfiguration
+      apiServer:
+        certSANs:
+        - "192.168.50.10"
+      networking:
+        serviceSubnet: "10.96.0.0/16"
+        podSubnet: "172.16.0.0/16"
+        dnsDomain: "ecascaz-cluster.local"
+      controlPlaneEndpoint: "192.168.50.10:6443"
+      ---
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      cgroupDriver: cgroupfs
+      EOF
+
   - name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --pod-network-cidr=172.16.0.0/16
+    shell: |
+      kubeadm init --config /tmp/kubeadm-config.yaml 
+    #command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --pod-network-cidr=172.16.0.0/16
 
   - name: Create kube directory
     file:
@@ -99,9 +127,11 @@
       sysctl -p
 
   # Install Weave as CNI
+  # https://docs.projectcalico.org/getting-started/kubernetes/self-managed-onprem/onpremises
   - name: Install calico CNI
     shell: |
-      kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+      #kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+      kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
   - name: Generate join command
     command: kubeadm token create --print-join-command
