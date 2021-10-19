@@ -43,6 +43,17 @@
       name: root
       group: docker
 
+  # Fix "cgroup driver" for docker to match `systemd`, which is the preferred by
+  # kubeadm based setups. By default, docker uses `cgroupfs` as "cgroup driver".
+  # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#configuring-a-cgroup-driver
+  - name: Ensure systemd as the cgroup driver in docker
+    synchronize:
+      src: ../docker/daemon.json
+      dest: /etc/docker/daemon.json
+
+  - name: Reload docker
+    command: systemctl restart docker
+  
   - name: Remove swapfile from /etc/fstab
     mount:
       name: "{{ item }}"
@@ -78,36 +89,36 @@
         - kubeadm
         - kubectl
 
-  - name: Setup kubelet config for cgroupfs
-    shell: |
-      cat << EOF > /tmp/kubeadm-config.yaml
-      ---
-      apiVersion: kubeadm.k8s.io/v1beta2
-      kind: InitConfiguration
-      localAPIEndpoint:
-        advertiseAddress: 192.168.50.10
-        bindPort: 6443
-      ---
-      apiVersion: kubeadm.k8s.io/v1beta2
-      kind: ClusterConfiguration
-      apiServer:
-        certSANs:
-        - "192.168.50.10"
-      networking:
-        serviceSubnet: "10.96.0.0/16"
-        podSubnet: "172.16.0.0/16"
-        dnsDomain: "ecascaz-cluster.local"
-      controlPlaneEndpoint: "192.168.50.10:6443"
-      ---
-      apiVersion: kubelet.config.k8s.io/v1beta1
-      kind: KubeletConfiguration
-      cgroupDriver: cgroupfs
-      EOF
+###   - name: Setup kubelet config for cgroupfs
+###     shell: |
+###       cat << EOF > /tmp/kubeadm-config.yaml
+###       ---
+###       apiVersion: kubeadm.k8s.io/v1beta2
+###       kind: InitConfiguration
+###       localAPIEndpoint:
+###         advertiseAddress: 192.168.50.10
+###         bindPort: 6443
+###       ---
+###       apiVersion: kubeadm.k8s.io/v1beta2
+###       kind: ClusterConfiguration
+###       apiServer:
+###         certSANs:
+###         - "192.168.50.10"
+###       networking:
+###         serviceSubnet: "10.96.0.0/16"
+###         podSubnet: "172.16.0.0/16"
+###         dnsDomain: "ecascaz-cluster.local"
+###       controlPlaneEndpoint: "192.168.50.10:6443"
+###       ---
+###       apiVersion: kubelet.config.k8s.io/v1beta1
+###       kind: KubeletConfiguration
+###       cgroupDriver: cgroupfs
+###       EOF
 
   - name: Initialize the Kubernetes cluster using kubeadm
-    shell: |
-      kubeadm init --config /tmp/kubeadm-config.yaml 
-    #command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --pod-network-cidr=172.16.0.0/16
+###     shell: |
+###       kubeadm init --config /tmp/kubeadm-config.yaml 
+    command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --pod-network-cidr=172.16.0.0/16
 
   - name: Create kube directory
     file:

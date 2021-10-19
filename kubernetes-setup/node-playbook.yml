@@ -43,6 +43,17 @@
       name: root
       group: docker
 
+  # Fix "cgroup driver" for docker to match `systemd`, which is the preferred by
+  # kubeadm based setups. By default, docker uses `cgroupfs` as "cgroup driver".
+  # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#configuring-a-cgroup-driver
+  - name: Ensure systemd as the cgroup driver in docker
+    synchronize:
+      src: ../docker/daemon.json
+      dest: /etc/docker/daemon.json
+
+  - name: Reload docker
+    command: systemctl restart docker
+  
   - name: Remove swapfile from /etc/fstab
     mount:
       name: "{{ item }}"
