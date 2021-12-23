@@ -1,0 +1,29 @@
+---
+- hosts: all
+  become: true
+  roles:
+    - nodes
+
+- hosts: masters
+  become: true
+  roles:
+    - masters
+
+- hosts: workers
+  become: true
+  roles:
+    - workers
+
+- hosts: kubectl
+  tags:
+    - post-settings
+  become: true
+  tasks:
+    - name: Let masters run workloads
+      command: kubectl taint node -l node-role.kubernetes.io/master= node-role.kubernetes.io/master:NoSchedule-
+
+    - name: Set data-plane role to worker nodes
+      command: kubectl label nodes --selector '!node-role.kubernetes.io/master' node-role.kubernetes.io/data-plane=
+
+    - name: Set worker role to worker nodes
+      command: kubectl label nodes --selector '!node-role.kubernetes.io/master' node-role.kubernetes.io/worker=

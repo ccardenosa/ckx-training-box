@@ -3,9 +3,11 @@
 
 
 # Define the number of worker nodes
-NUM_WORKER_NODE = 1
+NUM_MASTER_NODES = 1
+NUM_WORKER_NODES = 1
 IMAGE_NAME = "ubuntu/bionic64"
 
+IP_HEAD="192.168.56."
 
 Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
@@ -18,31 +20,62 @@ Vagrant.configure("2") do |config|
   end
   config.vm.disk :disk, name: "k8s-vol", size: "50GB"
 
-  # k8s cluster setup
-  config.vm.define "cks-master" do |master|
-    master.vm.box = IMAGE_NAME
-    master.vm.hostname = "cks-master"
-    master.vm.network "private_network", ip: "192.168.50.10"
-
-    master.vm.provision "ansible_local" do |ansible|
-      ansible.playbook = "kubernetes-setup/master-playbook.yml"
-      ansible.extra_vars = { node_ip: "192.168.50.10", }
-    end
-  end
-
-  (1..NUM_WORKER_NODE).each do |i|
-    config.vm.define "cks-worker-#{i}" do |node|
+  (1..NUM_MASTER_NODES).each do |i|
+    config.vm.define "master-#{i - 1}" do |node|
 
       node.vm.box = IMAGE_NAME
-      node.vm.hostname = "cks-worker-#{i}"
-      node.vm.network "private_network", ip: "192.168.50.#{i + 10}"
+      node.vm.hostname = "master-#{i - 1}"
+      node.vm.network "forwarded_port", guest: 22, host: "220#{i}"
+      node.vm.network "private_network", ip: "#{IP_HEAD}1#{i}"
 
-      node.vm.provision "ansible_local" do |ansible|
-        ansible.playbook = "kubernetes-setup/node-playbook.yml"
-        ansible.extra_vars = { node_ip: "192.168.50.#{i + 10}",
-                               kubelet_file: "cks-worker-#{i}.conf"}
+      node.vm.provision "ansible" do |ansible|
+        ansible.playbook = "kubernetes-setup/playbook.yml"
+        ansible.verbose = true
+        ansible.inventory_path = "inventories/vagrant.inventory"
+        ansible.skip_tags = "post-settings"
+        ansible.extra_vars = {
+          vagrant: true,
+          leader_master_ip: "#{IP_HEAD}11",
+          node_ip: "#{IP_HEAD}1#{i}",
+        }
       end
     end
   end
 
+  (1..NUM_WORKER_NODES).each do |i|
+    config.vm.define "worker-#{i - 1}" do |node|
+
+      node.vm.box = IMAGE_NAME
+      node.vm.hostname = "worker-#{i - 1}"
+      node.vm.network "forwarded_port", guest: 22, host: "220#{i + NUM_MASTER_NODES}"
+      node.vm.network "private_network", ip: "#{IP_HEAD}1#{i + NUM_MASTER_NODES}"
+
+      node.vm.provision "ansible" do |ansible|
+        ansible.playbook = "kubernetes-setup/playbook.yml"
+        ansible.verbose = true
+        ansible.inventory_path = "inventories/vagrant.inventory"
+        ansible.skip_tags = "post-settings"
+        ansible.extra_vars = {
+          vagrant: true,
+          leader_master_ip: "#{IP_HEAD}11",
+          node_ip: "#{IP_HEAD}1#{i + NUM_MASTER_NODES}",
+        }
+      end
+    end
+  end
+
+  config.vm.define "worker-#{NUM_WORKER_NODES - 1}" do |node|
+
+    node.vm.provision "ansible" do |ansible|
+      ansible.playbook = "kubernetes-setup/playbook.yml"
+      ansible.verbose = true
+      ansible.inventory_path = "inventories/vagrant.inventory"
+      ansible.tags = "post-settings"
+      ansible.limit="all"
+      ansible.extra_vars = {
+        vagrant: true,
+        leader_master_ip: "#{IP_HEAD}11",
+      }
+    end
+  end
 end

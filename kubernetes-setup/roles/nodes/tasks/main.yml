@@ -1,0 +1,106 @@
+---
+# tasks file for nodes
+###- name: 
+###  command: hostname -a
+###  register: networks
+###
+###- name: Detected Networks
+###  debug:
+###    msg: "{{item}}"
+###  with_items: "{{networks.stdout | split}}"
+
+- name: Install packages that allow apt to be used over HTTPS
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - software-properties-common
+    - gnupg2
+
+- name: Add an apt signing key for Docker
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add apt repository for stable version
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    state: present
+
+- name: Install docker and its dependecies
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+    - containerd.io
+    - docker-ce
+    - docker-ce-cli
+  notify:
+    - docker status
+
+- name: Add root user to docker group
+  user:
+    name: root
+    group: docker
+
+# Fix "cgroup driver" for docker to match `systemd`, which is the preferred by
+# kubeadm based setups. By default, docker uses `cgroupfs` as "cgroup driver".
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#configuring-a-cgroup-driver
+- name: Ensure systemd as the cgroup driver in docker
+  copy:
+    content: |
+      {
+        "exec-opts": ["native.cgroupdriver=systemd"]
+      }
+    dest: /etc/docker/daemon.json
+
+- name: Reload docker
+  command: systemctl restart docker
+
+- name: Remove swapfile from /etc/fstab
+  mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  with_items:
+    - swap
+    - none
+
+- name: Disable swap
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Add an apt signing key for Kubernetes
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Adding apt repository for Kubernetes
+  apt_repository:
+    repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+    filename: kubernetes.list
+
+- name: Install Kubernetes binaries
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - kubelet
+      - kubeadm
+      - kubectl
+
+- name: Disable IP tables
+  shell: |
+    echo "net.bridge.bridge-nf-call-iptables=1" >> /etc/sysctl.conf
+    echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+    sysctl -p
